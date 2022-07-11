@@ -8,14 +8,16 @@ enum JointType {
   prismatic = 1,
 };
 
-class Joint {
+class Joint{
  public:
+  Joint();
   int jointId;
+  int lastPosition;
   int begin(int jointId, JointType jointType, int minAngle, int maxAngle);
 
-  int moveJoint(Board, int);
+  int moveJoint(Board board, int commandedAngle, int time, bool immediate);
 
-  int moveJointTimed(int, double);
+  int readPosition(Board board);
 
  private:
   JointType jointType;
