@@ -12,11 +12,12 @@ unsigned long updatePeriod = 1000;
 unsigned long lastUpdate = 0;
 static const long baudRate = 115200;
 
-Board board(&Serial, baudRate);
+Board board(&Serial1, baudRate);
 Joint joints[] = {Joint(), Joint(), Joint(), Joint(), Joint(), Joint()};
 
 void setup() {
   Serial.begin(baudRate);
+  Serial1.begin(baudRate);
   joints[0].begin(0, JointType::revolute, 100, 900);
   joints[1].begin(1, JointType::revolute, 100, 900);
   joints[2].begin(2, JointType::revolute, 400, 500);
@@ -27,7 +28,7 @@ void setup() {
 }
 
 void loop() {
-  /*while (Serial.available() > 0) {
+  while (Serial.available() > 0) {
     char cmd = Serial.read();
 
     // Update all joints at once with
@@ -63,29 +64,25 @@ void loop() {
         Serial.println(" angle out of range");
       }
     }
-  }*/
-
+  }
+/*
   // Print the current joint positions to the serial monitor for debugging
   if (millis() - lastUpdate > updatePeriod) {
     if (DEBUG) {
-      char buf[80];
+      char msg[80];
       //joints[1].moveJoint(board, 500, 500, 1);
 
-      int currentPosition = joints[1].readPosition(board);
-      sprintf(buf, "Current Position:%i", joints[1].lastPosition);
-      Serial.println(buf);
-
       // Print the data header
-      //board.debug("");
-      //board.debug("------------Joint Positions------------");*/
+      board.logError("");
+      board.logError("------------Joint Positions------------");
 
       // Update all joint positions and print to the serial monitor
-      /*for (int i = 0; i < sizeof(joints) / sizeof(joints[0]); i++) {
+      for (int i = 0; i < sizeof(joints) / sizeof(joints[0]); i++) {
         int currentPosition = joints[i].readPosition(board);
-        //sprintf(msg, "Joint %i: %i", i, currentPosition);
-        //board.debug(msg);
-      }*/
+        sprintf(msg, "Joint %i: %i", i, currentPosition);
+        Serial.println(msg);
+      }
     }
     lastUpdate = millis();
-  }
+  }*/
 }

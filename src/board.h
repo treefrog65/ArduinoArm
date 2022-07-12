@@ -17,13 +17,7 @@ class Board {
   uint8_t checkSum(uint8_t bufferLength, uint8_t *buffer);
   int sendCommand(CommandType command, uint8_t id, uint8_t numOfParams, uint8_t *params);
   int read(CommandType command, uint8_t *params, int numOfParams, uint8_t id);
-  int logError(String message);
-  int logError(int);
-  int logError(char *buf);
-  void debugOn();
-  void debugOff();
 
-  bool debug = false;
 
  private:
   HardwareSerial *port;

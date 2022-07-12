@@ -6,35 +6,6 @@ Board::Board(HardwareSerial *bus, long baudRate) {
   baud = baudRate;
 }
 
-void Board::debugOff() {
-  debug = false;
-}
-
-void Board::debugOn() {
-  debug = true;
-}
-
-int Board::logError(String message) {
-  if (debug) {
-    return port->println(message);
-  }
-  return -1;
-}
-
-int Board::logError(char *buf) {
-  if (debug) {
-    return port->println(buf);
-  }
-  return -1;
-}
-
-int Board::logError(int num) {
-  if (debug) {
-    return port->println(num);
-  }
-  return -1;
-}
-
 uint8_t Board::checkSum(uint8_t bufferLength, uint8_t *buffer) {
   // Initalize chksum to 0 for calculation
   uint8_t cksum = 0;
@@ -92,7 +63,7 @@ int Board::read(CommandType command, uint8_t *params, int numOfParams, uint8_t i
     if (port->available()) {
       data[received] = port->read();
       sprintf(msg, "%i:%x", received, data[received]);
-      logError(msg);
+      //logError(msg);
       // Check recieved commands for known data
       // Parameters will be received if the header data is found to be good
       switch (received) {
@@ -100,34 +71,34 @@ int Board::read(CommandType command, uint8_t *params, int numOfParams, uint8_t i
         case 1:
           if (data[received] != 0x55) {
             sprintf(msg, "Error (Header): Expected 0x55 got 0x%x", data[received]);
-            logError(msg);
+            //logError(msg);
             return false;
           }
           break;
         case 2:
           if (data[received] != id) {
             sprintf(msg, "Error (Id): Expected %i got %i", id, data[received]);
-            logError(msg);
+            //logError(msg);
             return false;
           }
           break;
         case 3:
           if (data[received] != (len - 3)) {
             sprintf(msg, "Error (Length): Expected %i got %i", len, data[received]);
-            logError(msg);
+            //logError(msg);
             return false;
           }
           break;
         case 4:
           if (data[received] != command) {
             sprintf(msg, "Error (Command): Expected %i got %i", command, data[received]);
-            logError(msg);
+            //logError(msg);
             return false;
           }
           break;
         default:
           sprintf(msg, "%i received of %i: %x", received, len, data[received]);
-          logError(msg);
+          //logError(msg);
           if (received == (len-1)) {
             if (checkSum(len, data) == data[received]) {
               for (int i = 0; i < numOfParams; i++) {
@@ -142,6 +113,6 @@ int Board::read(CommandType command, uint8_t *params, int numOfParams, uint8_t i
     }
   }
   // Time out
-  logError("Command receive timeout");
+  //logError("Command receive timeout");
   return false;
 }
