@@ -34,9 +34,7 @@ int Joint::moveJoint(Board board, int commandedAngle, int time, bool immediate) 
   } else {
     char msg[80];
     sprintf(msg, "Joint %i Error:", this->jointId);
-    //board.logError(msg);
     sprintf(msg, "Bad Angle:%i is out of range(%i-%i)", commandedAngle, this->minAngle, this->maxAngle);
-    //board.logError(msg);
   }
   return 0;
 }

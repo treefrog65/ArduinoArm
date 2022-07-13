@@ -63,7 +63,6 @@ int Board::read(CommandType command, uint8_t *params, int numOfParams, uint8_t i
     if (port->available()) {
       data[received] = port->read();
       sprintf(msg, "%i:%x", received, data[received]);
-      //logError(msg);
       // Check recieved commands for known data
       // Parameters will be received if the header data is found to be good
       switch (received) {
@@ -71,34 +70,29 @@ int Board::read(CommandType command, uint8_t *params, int numOfParams, uint8_t i
         case 1:
           if (data[received] != 0x55) {
             sprintf(msg, "Error (Header): Expected 0x55 got 0x%x", data[received]);
-            //logError(msg);
             return false;
           }
           break;
         case 2:
           if (data[received] != id) {
             sprintf(msg, "Error (Id): Expected %i got %i", id, data[received]);
-            //logError(msg);
             return false;
           }
           break;
         case 3:
           if (data[received] != (len - 3)) {
             sprintf(msg, "Error (Length): Expected %i got %i", len, data[received]);
-            //logError(msg);
             return false;
           }
           break;
         case 4:
           if (data[received] != command) {
             sprintf(msg, "Error (Command): Expected %i got %i", command, data[received]);
-            //logError(msg);
             return false;
           }
           break;
         default:
           sprintf(msg, "%i received of %i: %x", received, len, data[received]);
-          //logError(msg);
           if (received == (len-1)) {
             if (checkSum(len, data) == data[received]) {
               for (int i = 0; i < numOfParams; i++) {
