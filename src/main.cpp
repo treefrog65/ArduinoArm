@@ -14,7 +14,7 @@ char msg[128];
 
 Board board(&Serial1, baudRate);
 Logger logger(&Serial);
-Joint joints[] = {Joint(), Joint(), Joint(), Joint(), Joint(), Joint()};
+Joint joints[6]{Joint()};
 
 void setup() {
   Serial.begin(baudRate);
@@ -66,7 +66,7 @@ void loop() {
 
       // Verify parameters and send servo command
       if (time) {
-        sprintf(msg, "Moving Joint %i");
+        sprintf(msg, "Moving Joint %i", joint);
         logger.log(LOGGER_LEVEL::INFO, msg);
         if (joints[joint].moveJoint(board, commandedPosition, time, 1)) {
           sprintf(msg, "Moving Joint %i to %i in %i ms", joint, commandedPosition, time);
@@ -84,6 +84,25 @@ void loop() {
         logger.log(LOGGER_LEVEL::DEBUG, msg);
       }
     }
+    // Update all joint voltage limits at once with
+    if (cmd == 'V') {
+      sprintf(msg, "Voltage limits command received.");
+      logger.log(LOGGER_LEVEL::INFO, msg);
+
+      int vMin = Serial.parseInt();
+      int vMax = Serial.parseInt();
+
+      for (int i = 0; i < 6; i++) {
+        // Update joint voltage Immediately
+        if (joints[i].setVoltageLimit(board, vMin, vMax)) {
+          sprintf(msg, "Moving Joint %i", i);
+          logger.log(LOGGER_LEVEL::INFO, msg);
+        } else {
+          sprintf(msg, "Joint %i voltage out of range", commandedPosition);
+          logger.log(LOGGER_LEVEL::DEBUG, msg);
+        }
+      }
+    }
   }
 
   // Print the current joint positions to the serial monitor for debugging
@@ -94,13 +113,22 @@ void loop() {
 
     // Update all joint positions and print to the serial monitor
     for (int i = 0; i < sizeof(joints) / sizeof(joints[0]); i++) {
-      //Update position of joint
+      // Update position of joint
       int currentPosition = joints[i].readPosition(board);
-      
-      //Update temparature of joint
+
+      // Update temparature of joint
       int temp = joints[i].readTemp(board);
 
-      sprintf(msg, "Joint %i: Temp=%i Position=%i", i, temp, currentPosition);
+      int minVoltage = 0;
+      int maxVoltage = 0;
+      if (joints[i].readVoltageLimits(board)) {
+        minVoltage = joints[i].getMinVoltage();
+        maxVoltage = joints[i].getMaxVoltage();
+      }
+
+      int voltageIn = joints[i].readVoltage(board);
+
+      sprintf(msg, "Joint %i: Temp=%i Position=%i Vmin=%i Vmax=%u Vin=%i", i, temp, currentPosition, minVoltage, maxVoltage, voltageIn);
       logger.log(LOGGER_LEVEL::DEBUG, msg);
     }
     lastUpdate = millis();
