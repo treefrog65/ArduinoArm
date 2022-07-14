@@ -20,11 +20,13 @@ void setup() {
   Serial.begin(baudRate);
   Serial1.begin(baudRate);
   logger.setLoggerLevel(LOGGER_LEVEL::DEBUG);
+
+  // Setup joint array with angles limited to physical interferences
   joints[0].begin(0, JointType::revolute, 0, 1000);
-  joints[1].begin(1, JointType::revolute, 125, 690);
-  joints[2].begin(2, JointType::revolute, 250, 725);
-  joints[3].begin(3, JointType::revolute, 250, 725);
-  joints[4].begin(4, JointType::revolute, 250, 725);
+  joints[1].begin(1, JointType::revolute, 100, 660);
+  joints[2].begin(2, JointType::revolute, 125, 910);
+  joints[3].begin(3, JointType::revolute, 125, 910);
+  joints[4].begin(4, JointType::revolute, 0, 1000);
   joints[5].begin(5, JointType::revolute, 0, 1000);
   delay(500);
 }
@@ -41,32 +43,45 @@ void loop() {
 
         int time = Serial.parseInt();
         // Move joint object Immediately
-        sprintf(msg,"Moving Joint %i to %i in %i ms", i, commandedPosition, time);
-        logger.log(LOGGER_LEVEL::DEBUG,msg);
-        joints[i].moveJoint(board, commandedPosition, time, 1);
-        delay(700);
+        if (joints[i].moveJoint(board, commandedPosition, time, 1)) {
+          sprintf(msg, "Moving Joint %i to %i in %i ms", i, commandedPosition, time);
+          logger.log(LOGGER_LEVEL::DEBUG, msg);
+        } else {
+          sprintf(msg, "Joint %i out of range", commandedPosition);
+          logger.log(LOGGER_LEVEL::DEBUG, msg);
+        }
       }
     }
 
     // Update a single joint
     if (cmd == 'S') {
-      Serial.println("Single joint update mode");
+      // Log that single joint mode command has been recieved
+      sprintf(msg, "Single joint command received");
+      logger.log(LOGGER_LEVEL::DEBUG, msg);
+
+      // Parse Parameters (1s timeout per parameter)
       int joint = Serial.parseInt();
       commandedPosition = Serial.parseInt();
       int time = Serial.parseInt();
-      if (joints[joint].moveJoint(board, commandedPosition, time, 1)) {
-        Serial.print("Joint ");
-        Serial.print(joint);
-        Serial.print(" angle updated to: ");
-        Serial.print(commandedPosition);
-        Serial.print(" in ");
-        Serial.print(time);
-        Serial.println(" ms.");
 
+      // Verify parameters and send servo command
+      if (time) {
+        sprintf(msg, "Moving Joint %i");
+        logger.log(LOGGER_LEVEL::INFO, msg);
+        if (joints[joint].moveJoint(board, commandedPosition, time, 1)) {
+          sprintf(msg, "Moving Joint %i to %i in %i ms", joint, commandedPosition, time);
+          logger.log(LOGGER_LEVEL::DEBUG, msg);
+
+          // Angle parameter out of range
+        } else {
+          sprintf(msg, "Joint %i out of range", commandedPosition);
+          logger.log(LOGGER_LEVEL::DEBUG, msg);
+        }
+
+        //<3 parameters received
       } else {
-        Serial.print("Joint ");
-        Serial.print(joint);
-        Serial.println(" angle out of range");
+        sprintf(msg, "Not all parameters received.");
+        logger.log(LOGGER_LEVEL::DEBUG, msg);
       }
     }
   }
@@ -75,14 +90,18 @@ void loop() {
   if (millis() - lastUpdate > updatePeriod) {
     // Print the data header
     logger.log(LOGGER_LEVEL::DEBUG, "");
-    logger.log(LOGGER_LEVEL::DEBUG, "------------Joint Positions------------");
+    logger.log(LOGGER_LEVEL::DEBUG, "------------Joint Data------------");
 
     // Update all joint positions and print to the serial monitor
     for (int i = 0; i < sizeof(joints) / sizeof(joints[0]); i++) {
+      //Update position of joint
       int currentPosition = joints[i].readPosition(board);
-      sprintf(msg, "Joint %i: %i", i, currentPosition);
+      
+      //Update temparature of joint
+      int temp = joints[i].readTemp(board);
+
+      sprintf(msg, "Joint %i: Temp=%i Position=%i", i, temp, currentPosition);
       logger.log(LOGGER_LEVEL::DEBUG, msg);
-      delay(10);
     }
     lastUpdate = millis();
   }

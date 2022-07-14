@@ -19,6 +19,8 @@ class Joint{
 
   int readPosition(Board board);
 
+  int readTemp(Board board);
+
  private:
   JointType jointType;
   int minAngle;

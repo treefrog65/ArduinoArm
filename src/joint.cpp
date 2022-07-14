@@ -31,10 +31,6 @@ int Joint::moveJoint(Board board, int commandedAngle, int time, bool immediate) 
     delay(70000 / 115200);
 
     return 1;
-  } else {
-    char msg[80];
-    sprintf(msg, "Joint %i Error:", this->jointId);
-    sprintf(msg, "Bad Angle:%i is out of range(%i-%i)", commandedAngle, this->minAngle, this->maxAngle);
   }
   return 0;
 }
@@ -44,6 +40,9 @@ int Joint::readPosition(Board board) {
 
   uint8_t params[2];
 
+  // Give the servo time to think
+  delay(board.time(8) + 5);
+
   bool success = board.read(CommandType::SERVO_POS_READ, params, 2, jointId);
 
   if (success) {
@@ -51,5 +50,22 @@ int Joint::readPosition(Board board) {
     return lastPosition;
   }
 
-  return -1;
+  return 0;
+}
+
+int Joint::readTemp(Board board) {
+  board.sendCommand(CommandType::SERVO_TEMP_READ, jointId, 0, 0);
+
+  uint8_t params[1];
+
+  // Give the servo time to think
+  delay(board.time(7) + 5);
+
+  bool success = board.read(CommandType::SERVO_TEMP_READ, params, 1, jointId);
+
+  if (success) {
+    return params[0];
+  }
+
+  return 0;
 }

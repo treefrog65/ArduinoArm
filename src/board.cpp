@@ -1,5 +1,8 @@
 
 #include "board.h"
+#include "logger.h"
+
+Logger log1(&Serial);
 
 Board::Board(HardwareSerial *bus, long baudRate) {
   port = bus;
@@ -16,6 +19,10 @@ uint8_t Board::checkSum(uint8_t bufferLength, uint8_t *buffer) {
   }
 
   return ~cksum;
+}
+
+int Board::time(uint32_t len){
+  return (len*10000)/baud; // time for transmission
 }
 
 int Board::sendCommand(CommandType command, uint8_t id, uint8_t numOfParams, uint8_t *params) {
@@ -53,8 +60,8 @@ int Board::read(CommandType command, uint8_t *params, int numOfParams, uint8_t i
   uint8_t data[len]{0};
   char msg[80];
 
-  // Timeout based on 10 bits/char and 50ms for servo to process command
-  uint32_t timeout = (len * 10000) / baud + 500;
+  // Timeout based on 10 bits/char and 5ms for servo to process command
+  uint32_t timeout = time(len) + 5;
   // delayMicroseconds(1);
 
   // 7 is the minimum length of the receiving packets
@@ -70,24 +77,28 @@ int Board::read(CommandType command, uint8_t *params, int numOfParams, uint8_t i
         case 1:
           if (data[received] != 0x55) {
             sprintf(msg, "Error (Header): Expected 0x55 got 0x%x", data[received]);
+            log1.log(LOGGER_LEVEL::DEBUG,msg);
             return false;
           }
           break;
         case 2:
           if (data[received] != id) {
             sprintf(msg, "Error (Id): Expected %i got %i", id, data[received]);
+            log1.log(LOGGER_LEVEL::DEBUG,msg);
             return false;
           }
           break;
         case 3:
           if (data[received] != (len - 3)) {
             sprintf(msg, "Error (Length): Expected %i got %i", len, data[received]);
+            log1.log(LOGGER_LEVEL::DEBUG,msg);
             return false;
           }
           break;
         case 4:
           if (data[received] != command) {
             sprintf(msg, "Error (Command): Expected %i got %i", command, data[received]);
+            log1.log(LOGGER_LEVEL::DEBUG,msg);
             return false;
           }
           break;
