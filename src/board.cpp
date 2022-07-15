@@ -3,8 +3,6 @@
 
 #include "logger.h"
 
-Logger log1(&Serial);
-
 Board::Board(HardwareSerial *bus, long baudRate) {
   port = bus;
   baud = baudRate;
@@ -83,28 +81,28 @@ int Board::read(CommandType command, uint8_t *params, int numOfParams, uint8_t i
         case 1:
           if (data[received] != 0x55) {
             sprintf(msg, "Error (Header): Expected 0x55 got 0x%x", data[received]);
-            log1.log(LOGGER_LEVEL::DEBUG, msg);
+            Serial.println( msg);
             return false;
           }
           break;
         case 2:
           if (data[received] != id) {
             sprintf(msg, "Error (Id): Expected %i got %i", id, data[received]);
-            log1.log(LOGGER_LEVEL::DEBUG, msg);
+            Serial.println(msg);
             return false;
           }
           break;
         case 3:
           if (data[received] != (len - 3)) {
             sprintf(msg, "Error (Length): Expected %i got %i", len, data[received]);
-            log1.log(LOGGER_LEVEL::DEBUG, msg);
+            Serial.println(msg);
             return false;
           }
           break;
         case 4:
           if (data[received] != command) {
             sprintf(msg, "Error (Command): Expected %i got %i", command, data[received]);
-            log1.log(LOGGER_LEVEL::DEBUG, msg);
+            Serial.println( msg);
             return false;
           }
           break;
@@ -124,6 +122,6 @@ int Board::read(CommandType command, uint8_t *params, int numOfParams, uint8_t i
     }
   }
   // Time out
-  // logError("Command receive timeout");
+  Serial.println("Command receive timeout");
   return false;
 }
