@@ -49,7 +49,7 @@ int Joint::setVoltageLimits(Board board, int vMin, int vMax) {
                         (uint8_t)(vMax >> 8)};
     board.sendCommand(CommandType::SERVO_VIN_LIMIT_WRITE, jointId_, 4, params);
 
-    readVoltageLimits();
+    readVoltageLimits(board);
 
     if (minVoltage_ == vMin && maxVoltage_ == vMax) {
       return 1;
