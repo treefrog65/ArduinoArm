@@ -16,14 +16,6 @@ int Logger::log(LOGGER_LEVEL level, char *buf){
   return 0;
 }
 
-int Logger::log(LOGGER_LEVEL level, String str){
-  if (level >= loggerLevel){
-    port->println(str);
-    return 1;
-  }
-  return 0;
-}
-
 int Logger::setLoggerLevel(LOGGER_LEVEL loggerLevel){
   this->loggerLevel = loggerLevel;
   return this->loggerLevel ;

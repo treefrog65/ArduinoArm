@@ -12,14 +12,6 @@ int Joint::begin(int id, JointType jType, int min, int max) {
   return 1;
 }
 
-int Joint::getMinVoltage() {
-  return minVoltage_;
-}
-
-int Joint::getMaxVoltage() {
-  return maxVoltage_;
-}
-
 // Requests joint to move to angle in certain time either immediately or after SERVO_MOVE_START
 // Returns a 1 if succesful and a 0 if not
 int Joint::moveJoint(Board board, int commandedAngle, int time, bool immediate) {
@@ -34,8 +26,6 @@ int Joint::moveJoint(Board board, int commandedAngle, int time, bool immediate) 
     } else {
       board.sendCommand(CommandType::SERVO_MOVE_TIME_WAIT_WRITE, jointId_, 4, params);
     }
-    delay(70000 / 115200);
-
     return 1;
   }
   return 0;
@@ -49,10 +39,31 @@ int Joint::setVoltageLimits(Board board, int vMin, int vMax) {
                         (uint8_t)(vMax >> 8)};
     board.sendCommand(CommandType::SERVO_VIN_LIMIT_WRITE, jointId_, 4, params);
 
-    readVoltageLimits(board);
+    //Servo processing time
+    delay(board.time(10));
 
-    if (minVoltage_ == vMin && maxVoltage_ == vMax) {
-      return 1;
+    if (readVoltageLimits(board)) {
+      if (minVoltage_ == vMin && maxVoltage_ == vMax) {
+        return 1;
+      }
+    }
+  }
+  return 0;
+}
+
+int Joint::setMaxTemp(Board board, uint8_t maxTemp) {
+  // Check parameter is within specifications of servo
+  if (maxTemp >= 50 && maxTemp <= 100) {
+    uint8_t params[1] = {maxTemp};
+    board.sendCommand(CommandType::SERVO_TEMP_MAX_LIMIT_WRITE, jointId_, 1, params);
+
+    delay(board.time(7));
+
+    // Verify that the parameter was set correctly
+    if (readMaxTemp(board)) {
+      if (maxTemp_ == maxTemp) {
+        return 1;
+      }
     }
   }
   return 0;
@@ -61,18 +72,29 @@ int Joint::setVoltageLimits(Board board, int vMin, int vMax) {
 int Joint::readPosition(Board board) {
   board.sendCommand(CommandType::SERVO_POS_READ, jointId_, 0, 0);
 
-  uint8_t params[2];
+  uint8_t params[2]{0};
 
   // Give the servo time to think
-  delay(board.time(8) + 5);
+  delay(board.time(8));
 
-  bool success = board.read(CommandType::SERVO_POS_READ, params, 2, jointId_);
-
-  if (success) {
+  if (board.read(CommandType::SERVO_POS_READ, params, 2, jointId_)) {
     lastPosition_ = (params[1] << 8) + params[0];
     return 1;
   }
 
+  return 0;
+}
+
+int Joint::readMaxTemp(Board board) {
+  board.sendCommand(CommandType::SERVO_TEMP_MAX_LIMIT_READ, jointId_, 0, 0);
+
+  uint8_t params[1]{0};
+  delay(board.time(7));
+
+  if (board.read(CommandType::SERVO_TEMP_MAX_LIMIT_READ, params, 1, jointId_)) {
+    maxTemp_ = params[0];
+    return 1;
+  }
   return 0;
 }
 
@@ -82,11 +104,9 @@ int Joint::readTemp(Board board) {
   uint8_t params[1];
 
   // Give the servo time to think
-  delay(board.time(7) + 5);
+  delay(board.time(7));
 
-  bool success = board.read(CommandType::SERVO_TEMP_READ, params, 1, jointId_);
-
-  if (success) {
+  if (board.read(CommandType::SERVO_TEMP_READ, params, 1, jointId_)) {
     temp_ = params[0];
     return 1;
   }
@@ -100,11 +120,9 @@ int Joint::readVoltageLimits(Board board) {
   uint8_t params[4];
 
   // Give the servo time to think
-  delay(board.time(10) + 5);
+  delay(board.time(10));
 
-  bool success = board.read(CommandType::SERVO_VIN_LIMIT_READ, params, 4, jointId_);
-
-  if (success) {
+  if (board.read(CommandType::SERVO_VIN_LIMIT_READ, params, 4, jointId_)) {
     minVoltage_ = (params[1] << 8) + params[0];
     maxVoltage_ = (params[3] << 8) + params[2];
     return 1;
@@ -119,11 +137,9 @@ int Joint::readVoltage(Board board) {
   uint8_t params[2];
 
   // Give the servo time to think
-  delay(board.time(8) + 5);
+  delay(board.time(8));
 
-  bool success = board.read(CommandType::SERVO_VIN_READ, params, 2, jointId_);
-
-  if (success) {
+  if (board.read(CommandType::SERVO_VIN_READ, params, 2, jointId_)) {
     voltageIn_ = (params[1] << 8) + params[0];
     return 1;
   }

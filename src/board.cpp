@@ -21,7 +21,7 @@ uint8_t Board::checkSum(uint8_t bufferLength, uint8_t *buffer) {
 }
 
 int Board::time(uint32_t len) {
-  return (len * 10000) / baud;  // time for transmission
+  return ((len * 10000) / baud)+ 10;  // time for transmission
 }
 
 int Board::sendCommand(CommandType command, uint8_t id, uint8_t numOfParams, uint8_t *params) {

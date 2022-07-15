@@ -18,7 +18,6 @@ class Logger{
   public:
     Logger(Serial_*);
     int log(LOGGER_LEVEL, char*);
-    int log(LOGGER_LEVEL, String);
     int setLoggerLevel(LOGGER_LEVEL);
   
   private:

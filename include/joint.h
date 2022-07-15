@@ -17,19 +17,20 @@ class Joint {
   int moveJoint(Board board, int commandedAngle, int time, bool immediate);
 
   int setVoltageLimits(Board board, int vMin, int vMax);
+  int setMaxTemp(Board board, uint8_t maxTemp);
 
   int readPosition(Board board);
-
   int readTemp(Board board);
-
   int readVoltageLimits(Board board);
+  int readVoltage(Board board);
+  int readMaxTemp(Board board);
+
   int getMaxVoltage() { return maxVoltage_; };
   int getMinVoltage() { return minVoltage_; };
+  int getVoltage() { return voltageIn_; }
   int getLastPosition() { return lastPosition_; };
-
-  int getTemp() {return temp_;};
-
-  int readVoltage(Board board);
+  int getTemp() { return temp_; };
+  int getMaxTemp() { return maxTemp_; };
 
  private:
   JointType jointType_;
@@ -37,6 +38,8 @@ class Joint {
   int temp_;
   int voltageIn_;
   int lastPosition_;
+
+  int maxTemp_;
 
   int minAngle_;
   int maxAngle_;
