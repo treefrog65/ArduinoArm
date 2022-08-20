@@ -13,12 +13,14 @@ static const long baudRate = 115200;
 char msg[128];
 
 Board board(&Serial1, baudRate);
-Logger logger(&Serial);
 Joint joints[6]{Joint()};
+
+Logger logger;
 
 void setup() {
   Serial.begin(baudRate);
   Serial1.begin(baudRate);
+  logger.setLoggerPort(&Serial);
   logger.setLoggerLevel(LOGGER_LEVEL::DEBUG);
 
   // Setup joint array with angles limited to physical interferences

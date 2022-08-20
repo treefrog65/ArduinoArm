@@ -1,8 +1,6 @@
 
 #include "board.h"
 
-#include "logger.h"
-
 Board::Board(HardwareSerial *bus, long baudRate) {
   port = bus;
   baud = baudRate;

@@ -1,5 +1,6 @@
 
-#pragma once
+#ifndef JOINT_H
+#define JOINT_H
 
 #include "board.h"
 
@@ -47,3 +48,5 @@ class Joint {
   int minVoltage_;
   int maxVoltage_;
 };
+
+#endif //JOINT_H

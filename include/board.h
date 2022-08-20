@@ -1,5 +1,6 @@
 
-#pragma once
+#ifndef BOARD_H
+#define BOARD_H
 
 #include <Arduino.h>
 
@@ -30,3 +31,5 @@ class Board {
   HardwareSerial *port;
   long baud;
 };
+
+#endif //BOARD_H
