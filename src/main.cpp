@@ -3,25 +3,21 @@
 
 #include "board.h"
 #include "joint.h"
-#include "logger.h"
 
 int commandedPosition;
 
 unsigned long updatePeriod = 1000;
 unsigned long lastUpdate = 0;
 static const long baudRate = 115200;
+bool debug = false;
 char msg[128];
 
 Board board(&Serial1, baudRate);
 Joint joints[6]{Joint()};
 
-Logger logger;
-
 void setup() {
   Serial.begin(baudRate);
   Serial1.begin(baudRate);
-  logger.setLoggerPort(&Serial);
-  logger.setLoggerLevel(LOGGER_LEVEL::DEBUG);
 
   // Setup joint array with angles limited to physical interferences
   joints[0].begin(0, JointType::revolute, 0, 1000);
@@ -47,10 +43,10 @@ void loop() {
         // Move joint object Immediately
         if (joints[i].moveJoint(board, commandedPosition, time, 1)) {
           sprintf(msg, "Moving Joint %i to %i in %i ms", i, commandedPosition, time);
-          logger.log(LOGGER_LEVEL::DEBUG, msg);
+          Serial.println(msg);
         } else {
           sprintf(msg, "Joint %i out of range", commandedPosition);
-          logger.log(LOGGER_LEVEL::DEBUG, msg);
+          Serial.println(msg);
         }
       }
     }
@@ -59,7 +55,7 @@ void loop() {
     if (cmd == 'S') {
       // Log that single joint mode command has been recieved
       sprintf(msg, "Single joint command received");
-      logger.log(LOGGER_LEVEL::DEBUG, msg);
+      Serial.println(msg);
 
       // Parse Parameters (1s timeout per parameter)
       int joint = Serial.parseInt();
@@ -69,27 +65,27 @@ void loop() {
       // Verify parameters and send servo command
       if (time) {
         sprintf(msg, "Moving Joint %i", joint);
-        logger.log(LOGGER_LEVEL::INFO, msg);
+        Serial.println(msg);
         if (joints[joint].moveJoint(board, commandedPosition, time, 1)) {
           sprintf(msg, "Moving Joint %i to %i in %i ms", joint, commandedPosition, time);
-          logger.log(LOGGER_LEVEL::DEBUG, msg);
+          Serial.println(msg);
 
           // Angle parameter out of range
         } else {
           sprintf(msg, "Joint %i out of range", commandedPosition);
-          logger.log(LOGGER_LEVEL::DEBUG, msg);
+          Serial.println(msg);
         }
 
         //<3 parameters received
       } else {
         sprintf(msg, "Not all parameters received.");
-        logger.log(LOGGER_LEVEL::DEBUG, msg);
+        Serial.println(msg);
       }
     }
     // Update all joint voltage limits at once with
     if (cmd == 'V') {
       sprintf(msg, "Voltage limits command received.");
-      logger.log(LOGGER_LEVEL::INFO, msg);
+      Serial.println(msg);
 
       int vMin = Serial.parseInt();
       int vMax = Serial.parseInt();
@@ -98,10 +94,10 @@ void loop() {
         // Update joint voltage Immediately
         if (joints[i].setVoltageLimits(board, vMin, vMax)) {
           sprintf(msg, "Joint %i max voltage updated to:%i and min voltage update to:%i", i, vMax, vMin);
-          logger.log(LOGGER_LEVEL::INFO, msg);
+          Serial.println(msg);
         } else {
           sprintf(msg, "Joint %i voltage out of range", i);
-          logger.log(LOGGER_LEVEL::DEBUG, msg);
+          Serial.println(msg);
         }
       }
     }
@@ -109,7 +105,7 @@ void loop() {
     // Set max temperature of all servos
     if (cmd == 'T') {
       sprintf(msg, "Temperature limits command received.");
-      logger.log(LOGGER_LEVEL::INFO, msg);
+      Serial.println(msg);
 
       uint8_t maxTemp = Serial.parseInt();
 
@@ -117,20 +113,36 @@ void loop() {
         // Update joint voltage Immediately
         if (joints[i].setMaxTemp(board, maxTemp)) {
           sprintf(msg, "Updating Joint %i max temperature to %u °C", i, maxTemp);
-          logger.log(LOGGER_LEVEL::INFO, msg);
+          Serial.println(msg);
         } else {
           sprintf(msg, "Joint %i temp out of range", i);
-          logger.log(LOGGER_LEVEL::DEBUG, msg);
+          Serial.println(msg);
         }
+      }
+    }
+
+    if (cmd == 'D') {
+      String val = Serial.readString();
+      val.trim();
+      if (val == "True"){
+         debug = true;
+         Serial.println("Debugging on.");
+         }else if (val == "False"){
+        debug = false;
+        Serial.println("Debugging off.");
+        }
+      else{
+        Serial.print("Expected ('True' or 'False) got:");
+        Serial.println(val);
       }
     }
   }
 
   // Print the current joint positions to the serial monitor for debugging
-  if (millis() - lastUpdate > updatePeriod) {
+  if ((millis() - lastUpdate > updatePeriod) && debug) {
     // Print the data header
     sprintf(msg, "\n------------Joint Data------------\n");
-    logger.log(LOGGER_LEVEL::DEBUG, msg);
+    Serial.println(msg);
 
     // Update all joint positions and print to the serial monitor
     for (uint8_t i = 0; i < sizeof(joints) / sizeof(joints[0]); i++) {
@@ -147,7 +159,7 @@ void loop() {
 
       sprintf(msg, "Joint %i: Max Temp=%u Temp=%i Position=%i Vmin=%i Vmax=%u Vin=%i", i, joints[i].getMaxTemp(), joints[i].getTemp(),
               joints[i].getLastPosition(), joints[i].getMinVoltage(), joints[i].getMaxVoltage(), joints[i].getVoltage());
-      logger.log(LOGGER_LEVEL::DEBUG, msg);
+      Serial.println(msg);
     }
     lastUpdate = millis();
   }
