@@ -11,11 +11,10 @@ enum JointType {
 
 class Joint {
  public:
-  Joint();
   int jointId_;
-  int begin(int jointId, JointType jointType, int minAngle, int maxAngle);
+  void begin(int jointId, JointType jointType, uint16_t minPosition_, uint16_t maxPosition_);
 
-  int moveJoint(Board board, int commandedAngle, int time, bool immediate);
+  int moveJoint(Board board, uint16_t commandedAngle, uint16_t time, bool immediate);
 
   int setVoltageLimits(Board board, int vMin, int vMax);
   int setMaxTemp(Board board, uint8_t maxTemp);
@@ -41,9 +40,9 @@ class Joint {
   int lastPosition_;
 
   int maxTemp_;
-
-  int minAngle_;
-  int maxAngle_;
+ public:
+  uint16_t minPosition_;
+  uint16_t maxPosition_;
 
   int minVoltage_;
   int maxVoltage_;

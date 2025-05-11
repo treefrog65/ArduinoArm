@@ -1,32 +1,44 @@
 
 #include "joint.h"
 
-Joint::Joint() {
-}
 
-int Joint::begin(int id, JointType jType, int min, int max) {
+void Joint::begin(int id, JointType jType, uint16_t min, uint16_t max) {
   jointType_ = jType;
   jointId_ = id;
-  minAngle_ = min;
-  maxAngle_ = max;
-  return 1;
+  minPosition_ = min;
+  maxPosition_ = max;
 }
 
 // Requests joint to move to angle in certain time either immediately or after SERVO_MOVE_START
-// Returns a 1 if succesful and a 0 if not
-int Joint::moveJoint(Board board, int commandedAngle, int time, bool immediate) {
+// Returns:
+// 0 if successful
+// 1 if angle < min
+// 2 if angle > max
+// 3 if time < 0
+// 4 if time > 30s
+int Joint::moveJoint(Board board, uint16_t commandedPosition, uint16_t time, bool immediate) {
   // Verify commanded angle and time is valid
-  if ((commandedAngle <= maxAngle_) && (commandedAngle >= minAngle_) && (time <= 30000) && (time >= 0)) {
-    // Break given angle and time parameters into byte sized chunks for command packet
-    uint8_t params[] = {(uint8_t)commandedAngle, (uint8_t)(commandedAngle >> 8), (uint8_t)time,
+  if (commandedPosition < minPosition_) {
+    return 1;
+  }
+  if (commandedPosition > maxPosition_) {
+    return 2;
+  }
+  if (time < 0) {
+    return 3;
+  }
+  if (time > 30000) {
+    return 4;
+  }
+
+  // Break given angle and time parameters into byte sized chunks for command packet
+  uint8_t params[] = {(uint8_t)commandedPosition, (uint8_t)(commandedPosition >> 8), (uint8_t)time,
                         (uint8_t)(time >> 8)};
 
-    if (immediate) {
-      board.sendCommand(CommandType::SERVO_MOVE_TIME_WRITE, jointId_, 4, params);
-    } else {
-      board.sendCommand(CommandType::SERVO_MOVE_TIME_WAIT_WRITE, jointId_, 4, params);
-    }
-    return 1;
+  if (immediate) {
+    board.sendCommand(CommandType::SERVO_MOVE_TIME_WRITE, jointId_, 4, params);
+  } else {
+    board.sendCommand(CommandType::SERVO_MOVE_TIME_WAIT_WRITE, jointId_, 4, params);
   }
   return 0;
 }
@@ -39,7 +51,7 @@ int Joint::setVoltageLimits(Board board, int vMin, int vMax) {
                         (uint8_t)(vMax >> 8)};
     board.sendCommand(CommandType::SERVO_VIN_LIMIT_WRITE, jointId_, 4, params);
 
-    //Servo processing time
+    // Servo processing time
     delay(board.time(10));
 
     if (readVoltageLimits(board)) {

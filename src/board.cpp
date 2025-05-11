@@ -1,7 +1,7 @@
 
 #include "board.h"
 
-Board::Board(HardwareSerial *bus, long baudRate) {
+Board::Board(SoftwareSerial *bus, long baudRate) {
   port = bus;
   baud = baudRate;
 }
@@ -49,7 +49,7 @@ int Board::sendCommand(CommandType command, uint8_t id, uint8_t numOfParams, uin
   // Transmit the command byte-wise over the serial bus
   port->write(buffer, bufferLength);
 
-  return 1;
+  return 0;
 }
 
 int Board::read(CommandType command, uint8_t *params, int numOfParams, uint8_t id) {

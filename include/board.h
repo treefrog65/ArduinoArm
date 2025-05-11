@@ -3,6 +3,7 @@
 #define BOARD_H
 
 #include <Arduino.h>
+#include "SoftwareSerial.h"
 
 enum CommandType {
   SERVO_MOVE_TIME_WRITE = 1,
@@ -20,7 +21,7 @@ enum CommandType {
 
 class Board {
  public:
-  Board(HardwareSerial *port, long baud);
+  Board(SoftwareSerial* port, long baud);
 
   uint8_t checkSum(uint8_t bufferLength, uint8_t *buffer);
   int sendCommand(CommandType command, uint8_t id, uint8_t numOfParams, uint8_t *params);
@@ -28,7 +29,7 @@ class Board {
   int time(uint32_t len);
 
  private:
-  HardwareSerial *port;
+  SoftwareSerial* port;
   long baud;
 };
 
