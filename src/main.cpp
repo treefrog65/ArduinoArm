@@ -2,10 +2,9 @@
 #include <Arduino.h>
 
 #include "CommandParser.h"
-#include "board.h"
-#include "joint.h"
-
 #include "SoftwareSerial.h"
+#include "BusLinker.h"
+#include "Joint.h"
 
 int commandedPosition;
 
@@ -21,11 +20,20 @@ char input[64];
 uint8_t inputPos{0};
 
 // For nano
-auto pcSerial = Serial;
-SoftwareSerial boardSerial = SoftwareSerial(2,3);
+auto& pcSerial = Serial;
+SoftwareSerial boardSerial = SoftwareSerial(2, 3);
 
-Board board(&boardSerial, baudRate);
-Joint joints[6]{Joint()};
+
+BusLinker bus(&boardSerial, baudRate);
+  // Setup joint array with angles limited to physical interferences
+Joint joints[6] = {
+  Joint(&bus, 0, JointType::revolute, 0, 100),
+  Joint(&bus, 1, JointType::revolute, 100, 660),
+  Joint(&bus, 2, JointType::revolute, 125, 910),
+  Joint(&bus, 3, JointType::revolute, 125, 910),
+  Joint(&bus, 4, JointType::revolute, 0, 1000),
+  Joint(&bus, 5, JointType::revolute, 0, 1000)
+};
 
 void move(MyCommandParser::Argument* args, char* response) {
   // Create and send servo command
@@ -33,33 +41,40 @@ void move(MyCommandParser::Argument* args, char* response) {
   uint8_t joint = args[0].asUInt64;
   uint16_t position = args[1].asUInt64;
   uint16_t time = args[2].asUInt64;
+  bool now = args[3].asUInt64;
 
-  if (joint > 5 ){
+  if (joint > 5) {
     sprintf(msg, "Joint %u out of range", joint);
     memmove(response, msg, MyCommandParser::MAX_RESPONSE_SIZE);
     return;
   }
 
-  int success = joints[joint].moveJoint(board, position, time, true);
+  if (joints[joint].moveJoint(position, time, true)) {
+    sprintf(msg, "Moving Joint %i to %i in %i ms", joint, position, time);
+  } else {
+    sprintf(msg, "Error!");
+  }
+  memmove(response, msg, MyCommandParser::MAX_RESPONSE_SIZE);
+}
 
-  switch (success) {
-    case 0:
-      sprintf(msg, "Moving Joint %i to %i in %i ms", joint, position, time);
-      break;
-    case 1:
-      sprintf(msg, "Joint %i requested position %i too low!", joint, position);
-      break;
-    case 2:
-      sprintf(msg, "Joint %i requested position %i too high!", joint, position);
-      break;
-    case 3:
-      sprintf(msg, "Joint %i requested move time %i < 0", joint, time);
-      break;
-    case 4:
-      sprintf(msg, "Joint %i requested move time %i > 30000!", joint, time);
-      break;
-    default:
-      sprintf(msg, "Unknown error");
+void move_wait(MyCommandParser::Argument* args, char* response) {
+  // Create and send servo command
+  char msg[64];
+  uint8_t joint = args[0].asUInt64;
+  uint16_t position = args[1].asUInt64;
+  uint16_t time = args[2].asUInt64;
+  bool now = args[3].asUInt64;
+
+  if (joint > 5) {
+    sprintf(msg, "Joint %u out of range", joint);
+    memmove(response, msg, MyCommandParser::MAX_RESPONSE_SIZE);
+    return;
+  }
+
+  if (joints[joint].moveJoint(position, time, false)) {
+    sprintf(msg, "Scheduling Joint %i to %i in %i ms", joint, position, time);
+  } else {
+    sprintf(msg, "Error!");
   }
   memmove(response, msg, MyCommandParser::MAX_RESPONSE_SIZE);
 }
@@ -79,16 +94,18 @@ void setup() {
   boardSerial.begin(baudRate);
 
   parser.registerCommand("move", "uuu", &move);
+  parser.registerCommand("move_wait", "uuu", &move);
   parser.registerCommand("debug", "u", &debug);
+  parser.registerCommand("get_vin", "u", &debug);
+  parser.registerCommand("get_vmax", "u", &debug);
+  parser.registerCommand("set_vmax", "uu", &debug);
+  parser.registerCommand("get_tin", "u", &debug);
+  parser.registerCommand("get_tmax", "u", &debug);
+  parser.registerCommand("set_tmax", "uu", &debug);
 
-  // Setup joint array with angles limited to physical interferences
-  joints[0].begin(0, JointType::revolute, 0, 100);
-  joints[1].begin(1, JointType::revolute, 100, 660);
-  joints[2].begin(2, JointType::revolute, 125, 910);
-  joints[3].begin(3, JointType::revolute, 125, 910);
-  joints[4].begin(4, JointType::revolute, 0, 1000);
-  joints[5].begin(5, JointType::revolute, 0, 1000);
   delay(500);
+
+  pcSerial.println("Welcome to ArduinoArm");
 }
 
 void loop() {
@@ -107,7 +124,6 @@ void loop() {
   }
 
   if (commandReady) {
-    pcSerial.println(input);
     char response[MyCommandParser::MAX_RESPONSE_SIZE];
     parser.processCommand(input, response);
     pcSerial.println(response);
@@ -127,15 +143,15 @@ void loop() {
     // Update all joint positions and print to the serial monitor
     for (uint8_t i = 0; i < sizeof(joints) / sizeof(joints[0]); i++) {
       // Update position of joint
-      joints[i].readPosition(board);
+      joints[i].readPosition();
 
       // Update temparature of joint
-      joints[i].readTemp(board);
-      joints[i].readMaxTemp(board);
+      joints[i].readTemp();
+      joints[i].readMaxTemp();
 
-      joints[i].readVoltageLimits(board);
+      joints[i].readVoltageLimits();
 
-      joints[i].readVoltage(board);
+      joints[i].readVoltage();
 
       sprintf(msg, "Joint %i: Max Temp=%u Temp=%i Position=%i Vmin=%i Vmax=%u Vin=%i", i, joints[i].getMaxTemp(), joints[i].getTemp(),
               joints[i].getLastPosition(), joints[i].getMinVoltage(), joints[i].getMaxVoltage(), joints[i].getVoltage());

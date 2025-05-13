@@ -1,0 +1,2 @@
+# Move joints
+move 0 0 600 : 55 55 00 07 01 00 00 58 02 9D // joint 0 to position 0 in 600 ms
